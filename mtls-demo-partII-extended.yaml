@@ -145,6 +145,14 @@ spec:
   selector:
     name: redis-server
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cacert-service-binding-type
+  namespace: mtls-demo
+data:
+  type: "ca-certificates"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -167,37 +175,32 @@ spec:
           secret:
             secretName: redis-client-certificate
         - name: cacert-service-binding
-          emptyDir: { }
-      initContainers:
-        - image: ddubson/spring-boot-redis-mtls-demo:basic
-          name: cacert-service-binding-bootstrap
-          command: ["/bin/sh", "-c"]
-          args:
-            - "mkdir -p /bindings/redis-cacert-service-binding;
-              echo 'ca-certificates' > /bindings/redis-cacert-service-binding/type; 
-              cp /certs/ca.crt /bindings/redis-cacert-service-binding/;"
-          volumeMounts:
-            - mountPath: /bindings
-              name: cacert-service-binding
-            - mountPath: /certs
-              name: client-certificate
+          projected:
+            sources:
+              - configMap:
+                  name: cacert-service-binding-type
+              - secret:
+                  name: redis-client-certificate
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
       containers:
         - image: ddubson/spring-boot-redis-mtls-demo:basic
           name: spring-boot-redis-client-app
           volumeMounts:
             - mountPath: /certs
               name: client-certificate
-            - mountPath: /bindings
+            - mountPath: /bindings/cacert-service-binding
               name: cacert-service-binding
           env:
+            - name: SERVICE_BINDING_ROOT
+              value: "/bindings"
             - name: SPRING_REDIS_HOST
               value: "redis-server"
             - name: SPRING_REDIS_PORT
               value: "6379"
             - name: SPRING_REDIS_SSL
               value: "true"
-            - name: SERVICE_BINDING_ROOT
-              value: "/bindings"
             - name: JAVA_OPTS
               value: >-
                 -Djavax.net.ssl.keyStoreType=PKCS12
