@@ -145,6 +145,20 @@ spec:
   selector:
     name: redis-server
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spring-boot-redis-client-app-java-opts
+  namespace: mtls-demo
+stringData:
+  JAVA_OPTS: >-
+   -Djavax.net.ssl.keyStoreType=PKCS12
+   -Djavax.net.ssl.keyStore=/certs/keystore.p12
+   -Djavax.net.ssl.keyStorePassword=password123
+   -Djavax.net.ssl.trustStoreType=PKCS12
+   -Djavax.net.ssl.trustStore=/certs/truststore.p12
+   -Djavax.net.ssl.trustStorePassword=password123
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -179,14 +193,9 @@ spec:
               value: "6379"
             - name: SPRING_REDIS_SSL
               value: "true"
-            - name: JAVA_OPTS
-              value: >-
-                -Djavax.net.ssl.keyStoreType=PKCS12
-                -Djavax.net.ssl.keyStore=/certs/keystore.p12
-                -Djavax.net.ssl.keyStorePassword=password123
-                -Djavax.net.ssl.trustStoreType=PKCS12  
-                -Djavax.net.ssl.trustStore=/certs/truststore.p12  
-                -Djavax.net.ssl.trustStorePassword=password123
+          envFrom:
+            - secretRef:
+                name: spring-boot-redis-client-app-java-opts
           ports:
             - containerPort: 8080
               name: app-port
