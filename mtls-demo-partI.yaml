@@ -36,6 +36,7 @@ spec:
   ports:
     - port: 6379
       targetPort: 6379
+      name: service-port
   selector:
     name: redis-server
 ---
@@ -86,7 +87,7 @@ metadata:
   namespace: mtls-demo
 spec:
   ports:
-    - name: 8080-8080
+    - name: service-port
       port: 8080
       protocol: TCP
       targetPort: 8080
